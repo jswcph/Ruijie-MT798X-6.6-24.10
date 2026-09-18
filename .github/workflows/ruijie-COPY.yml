@@ -175,6 +175,59 @@ jobs:
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
+
+      #=================================================
+      # 精简 LuCI 状态概览：只显示可用数、已缓存
+      #=================================================
+    - name: 精简状态概览内存显示
+      run: |
+          set -e
+
+          cd "$WORKDIR/openwrt"
+
+          FILE="feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/20_memory.js"
+
+          if [ ! -f "$FILE" ]; then
+            echo "ERROR: 找不到 LuCI 内存显示文件：$FILE"
+            find feeds package -path '*/view/status/include/20_memory.js' -print
+            exit 1
+          fi
+
+          echo "===== 修改前 ====="
+          grep -o "var fields=.*var table=" "$FILE" || true
+
+          python3 - "$FILE" <<'PY'
+          import sys
+          from pathlib import Path
+
+          path = Path(sys.argv[1])
+          text = path.read_text()
+
+          start = text.find("var fields=[")
+          end = text.find("var table=", start)
+
+          if start < 0 or end < 0:
+              raise SystemExit("ERROR: 未找到预期的内存字段代码，停止修改")
+
+          replacement = """var fields=[_('Total Available'),(mem.available)?mem.available:(mem.total&&mem.free&&mem.buffered)?mem.free+mem.buffered:null,mem.total];if(mem.cached)fields.push(_('Cached'),mem.cached,mem.total);"""
+
+          text = text[:start] + replacement + text[end:]
+          path.write_text(text)
+
+          check = path.read_text()
+          if "Total Available" not in check or "Cached" not in check:
+              raise SystemExit("ERROR: 内存字段修改核验失败")
+
+          if "Swap free" in check or "Buffered" in check or "_('Used')" in check:
+              raise SystemExit("ERROR: 检测到未清除的其他内存项目")
+
+          print("OK: 仅保留可用数、已缓存")
+          PY
+
+          echo "===== 修改后 ====="
+          grep -o "var fields=.*var table=" "$FILE"
+
+          
     - name: Compile Toolchain
       id: compile
       run: |
