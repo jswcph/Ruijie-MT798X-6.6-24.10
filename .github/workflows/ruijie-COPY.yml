@@ -1,5 +1,4 @@
-name: Ruijie Openwrt Development
-
+name: Build Ruijie COPY
 on:
   push:
     branches: [ "openwrt-24.10-6.6" ]
