@@ -1,9 +1,5 @@
 name: Build Ruijie COPY
 on:
-  push:
-    branches: [ "openwrt-24.10-6.6" ]
-  pull_request:
-    branches: [ "openwrt-24.10-6.6" ]
   workflow_dispatch:
 
 env:
