@@ -36,8 +36,7 @@ done
 # 默认密码：password（登录/SSH）
 (echo 'password'; sleep 1; echo 'password') | passwd root >/dev/null 2>&1
 
-# 默认主题：Argon
-uci set luci.main.mediaurlbase='/luci-static/argon'
+
 # 默认语言：简体中文
 uci set luci.main.lang='zh_cn'
 
