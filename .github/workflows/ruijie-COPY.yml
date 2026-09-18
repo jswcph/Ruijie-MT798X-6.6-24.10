@@ -287,43 +287,61 @@ jobs:
         FILE="feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/20_memory.js"
 
         if [ ! -f "$FILE" ]; then
-          echo "ERROR: 找不到 LuCI 内存显示文件"
+          echo "ERROR: 找不到文件 $FILE"
           find feeds package -path '*/view/status/include/20_memory.js' -print
           exit 1
         fi
 
         python3 - "$FILE" <<'PY'
+        import re
         import sys
         from pathlib import Path
 
         path = Path(sys.argv[1])
         text = path.read_text()
 
-        start = text.find("var fields=[")
-        end = text.find("var table=", start)
+        # 兼容空格、换行等源码格式差异
+        pattern = re.compile(
+            r'var\s+fields\s*=\s*\[.*?\]\s*;.*?(?=var\s+table\s*=)',
+            re.S
+        )
 
-        if start < 0 or end < 0:
-            raise SystemExit("ERROR: 内存字段代码结构不匹配")
+        replacement = (
+            "var fields=[_('Total Available'),"
+            "(mem.available)?mem.available:"
+            "(mem.total&&mem.free&&mem.buffered)?"
+            "mem.free+mem.buffered:null,"
+            "mem.total];"
+            "if(mem.cached)"
+            "fields.push(_('Cached'),mem.cached,mem.total);"
+        )
 
-        replacement = """var fields=[_('Total Available'),(mem.available)?mem.available:(mem.total&&mem.free&&mem.buffered)?mem.free+mem.buffered:null,mem.total];if(mem.cached)fields.push(_('Cached'),mem.cached,mem.total);"""
+        new_text, count = pattern.subn(replacement, text, count=1)
 
-        text = text[:start] + replacement + text[end:]
-        path.write_text(text)
+        if count != 1:
+            print("ERROR: 未匹配到内存字段区域")
+            print("===== 文件内容前 3000 字符 =====")
+            print(text[:3000])
+            raise SystemExit(1)
 
-        check = path.read_text()
+        path.write_text(new_text)
 
-        for item in ["Total Available", "Cached"]:
-            if item not in check:
-                raise SystemExit("ERROR: 缺少保留项目 " + item)
+        print("OK: 内存字段已修改")
+        print("===== 修改后相关代码 =====")
 
-        for item in ["Swap free", "Buffered", "_('Used')"]:
-            if item in check:
-                raise SystemExit("ERROR: 仍存在隐藏项目 " + item)
+        updated = path.read_text()
+        pos = updated.find("var fields")
 
-        print("OK: 仅保留可用数、已缓存")
+        print(updated[pos:pos + 700])
+
+        if "Total Available" not in updated or "Cached" not in updated:
+            raise SystemExit("ERROR: 保留字段检查失败")
+
+        if "Swap free" in updated or "Buffered" in updated:
+            raise SystemExit("ERROR: 仍存在隐藏字段")
+
+        print("OK: 修改核验通过")
         PY
-
-        echo "===== 内存显示修改完成 ====="
         
     - name: Download Package
       id: download-package
@@ -649,6 +667,7 @@ jobs:
         make defconfig
 
 
+
     - name: 精简状态概览内存显示
       run: |
         set -e
@@ -656,43 +675,61 @@ jobs:
         FILE="feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/20_memory.js"
 
         if [ ! -f "$FILE" ]; then
-          echo "ERROR: 找不到 LuCI 内存显示文件"
+          echo "ERROR: 找不到文件 $FILE"
           find feeds package -path '*/view/status/include/20_memory.js' -print
           exit 1
         fi
 
         python3 - "$FILE" <<'PY'
+        import re
         import sys
         from pathlib import Path
 
         path = Path(sys.argv[1])
         text = path.read_text()
 
-        start = text.find("var fields=[")
-        end = text.find("var table=", start)
+        # 兼容空格、换行等源码格式差异
+        pattern = re.compile(
+            r'var\s+fields\s*=\s*\[.*?\]\s*;.*?(?=var\s+table\s*=)',
+            re.S
+        )
 
-        if start < 0 or end < 0:
-            raise SystemExit("ERROR: 内存字段代码结构不匹配")
+        replacement = (
+            "var fields=[_('Total Available'),"
+            "(mem.available)?mem.available:"
+            "(mem.total&&mem.free&&mem.buffered)?"
+            "mem.free+mem.buffered:null,"
+            "mem.total];"
+            "if(mem.cached)"
+            "fields.push(_('Cached'),mem.cached,mem.total);"
+        )
 
-        replacement = """var fields=[_('Total Available'),(mem.available)?mem.available:(mem.total&&mem.free&&mem.buffered)?mem.free+mem.buffered:null,mem.total];if(mem.cached)fields.push(_('Cached'),mem.cached,mem.total);"""
+        new_text, count = pattern.subn(replacement, text, count=1)
 
-        text = text[:start] + replacement + text[end:]
-        path.write_text(text)
+        if count != 1:
+            print("ERROR: 未匹配到内存字段区域")
+            print("===== 文件内容前 3000 字符 =====")
+            print(text[:3000])
+            raise SystemExit(1)
 
-        check = path.read_text()
+        path.write_text(new_text)
 
-        for item in ["Total Available", "Cached"]:
-            if item not in check:
-                raise SystemExit("ERROR: 缺少保留项目 " + item)
+        print("OK: 内存字段已修改")
+        print("===== 修改后相关代码 =====")
 
-        for item in ["Swap free", "Buffered", "_('Used')"]:
-            if item in check:
-                raise SystemExit("ERROR: 仍存在隐藏项目 " + item)
+        updated = path.read_text()
+        pos = updated.find("var fields")
 
-        print("OK: 仅保留可用数、已缓存")
+        print(updated[pos:pos + 700])
+
+        if "Total Available" not in updated or "Cached" not in updated:
+            raise SystemExit("ERROR: 保留字段检查失败")
+
+        if "Swap free" in updated or "Buffered" in updated:
+            raise SystemExit("ERROR: 仍存在隐藏字段")
+
+        print("OK: 修改核验通过")
         PY
-
-        echo "===== 内存显示修改完成 ====="
     - name: Download Package
       id: download-package
       run: |
