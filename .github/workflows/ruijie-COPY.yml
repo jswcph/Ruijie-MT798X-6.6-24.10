@@ -279,6 +279,52 @@ jobs:
       run: |
         make defconfig
 
+
+    - name: 精简状态概览内存显示
+      run: |
+        set -e
+
+        FILE="feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/20_memory.js"
+
+        if [ ! -f "$FILE" ]; then
+          echo "ERROR: 找不到 LuCI 内存显示文件"
+          find feeds package -path '*/view/status/include/20_memory.js' -print
+          exit 1
+        fi
+
+        python3 - "$FILE" <<'PY'
+        import sys
+        from pathlib import Path
+
+        path = Path(sys.argv[1])
+        text = path.read_text()
+
+        start = text.find("var fields=[")
+        end = text.find("var table=", start)
+
+        if start < 0 or end < 0:
+            raise SystemExit("ERROR: 内存字段代码结构不匹配")
+
+        replacement = """var fields=[_('Total Available'),(mem.available)?mem.available:(mem.total&&mem.free&&mem.buffered)?mem.free+mem.buffered:null,mem.total];if(mem.cached)fields.push(_('Cached'),mem.cached,mem.total);"""
+
+        text = text[:start] + replacement + text[end:]
+        path.write_text(text)
+
+        check = path.read_text()
+
+        for item in ["Total Available", "Cached"]:
+            if item not in check:
+                raise SystemExit("ERROR: 缺少保留项目 " + item)
+
+        for item in ["Swap free", "Buffered", "_('Used')"]:
+            if item in check:
+                raise SystemExit("ERROR: 仍存在隐藏项目 " + item)
+
+        print("OK: 仅保留可用数、已缓存")
+        PY
+
+        echo "===== 内存显示修改完成 ====="
+        
     - name: Download Package
       id: download-package
       run: |
@@ -602,6 +648,51 @@ jobs:
       run: |
         make defconfig
 
+
+    - name: 精简状态概览内存显示
+      run: |
+        set -e
+
+        FILE="feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/20_memory.js"
+
+        if [ ! -f "$FILE" ]; then
+          echo "ERROR: 找不到 LuCI 内存显示文件"
+          find feeds package -path '*/view/status/include/20_memory.js' -print
+          exit 1
+        fi
+
+        python3 - "$FILE" <<'PY'
+        import sys
+        from pathlib import Path
+
+        path = Path(sys.argv[1])
+        text = path.read_text()
+
+        start = text.find("var fields=[")
+        end = text.find("var table=", start)
+
+        if start < 0 or end < 0:
+            raise SystemExit("ERROR: 内存字段代码结构不匹配")
+
+        replacement = """var fields=[_('Total Available'),(mem.available)?mem.available:(mem.total&&mem.free&&mem.buffered)?mem.free+mem.buffered:null,mem.total];if(mem.cached)fields.push(_('Cached'),mem.cached,mem.total);"""
+
+        text = text[:start] + replacement + text[end:]
+        path.write_text(text)
+
+        check = path.read_text()
+
+        for item in ["Total Available", "Cached"]:
+            if item not in check:
+                raise SystemExit("ERROR: 缺少保留项目 " + item)
+
+        for item in ["Swap free", "Buffered", "_('Used')"]:
+            if item in check:
+                raise SystemExit("ERROR: 仍存在隐藏项目 " + item)
+
+        print("OK: 仅保留可用数、已缓存")
+        PY
+
+        echo "===== 内存显示修改完成 ====="
     - name: Download Package
       id: download-package
       run: |
