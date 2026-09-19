@@ -571,7 +571,7 @@ jobs:
         tag_name: ${{ steps.tag.outputs.release_tag }}
         body_path: release.txt
         files: ${{ env.FIRMWARE }}/*
-        prerelease: true
+        prerelease: false
 
   mt7981-max:
     name: MT7981 Max Build
@@ -959,4 +959,4 @@ jobs:
         tag_name: ${{ steps.tag.outputs.release_tag }}
         body_path: release.txt
         files: ${{ env.FIRMWARE }}/*
-        prerelease: true
+        prerelease: false
