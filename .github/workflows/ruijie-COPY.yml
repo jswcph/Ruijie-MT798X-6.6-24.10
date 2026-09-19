@@ -1,7 +1,10 @@
 name: Build Ruijie COPY
 on:
   workflow_dispatch:
-
+  
+permissions:
+  contents: write
+  
 env:
   UPLOAD_BIN_DIR: true
   UPLOAD_FIRMWARE: true
