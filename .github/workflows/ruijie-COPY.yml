@@ -188,6 +188,7 @@ jobs:
 
   mt7981-lite:
     name: MT7981 Lite Build
+    if: false
     runs-on: ubuntu-22.04
     needs: [cache-toolchain]
     steps:
@@ -373,6 +374,7 @@ jobs:
 
   mt7986-lite:
     name: MT7986 Lite Build
+    if: false
     runs-on: ubuntu-22.04
     needs: [cache-toolchain]
     steps:
