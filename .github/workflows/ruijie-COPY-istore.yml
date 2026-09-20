@@ -1,4 +1,4 @@
-name: Build Ruijie-istore
+name: Build Ruijie COPY
 on:
   workflow_dispatch:
   
@@ -690,7 +690,8 @@ jobs:
       id: enable-istore
       run: |
         set -e
-        ./scripts/config -e PACKAGE_luci-app-store
+        grep -q '^CONFIG_PACKAGE_luci-app-store=' .config && sed -i '/^CONFIG_PACKAGE_luci-app-store=/d' .config || true
+        printf '%s\n' 'CONFIG_PACKAGE_luci-app-store=y' >> .config
         make defconfig
         grep -q '^CONFIG_PACKAGE_luci-app-store=y' .config
 
@@ -899,7 +900,8 @@ jobs:
       id: enable-istore
       run: |
         set -e
-        ./scripts/config -e PACKAGE_luci-app-store
+        grep -q '^CONFIG_PACKAGE_luci-app-store=' .config && sed -i '/^CONFIG_PACKAGE_luci-app-store=/d' .config || true
+        printf '%s\n' 'CONFIG_PACKAGE_luci-app-store=y' >> .config
         make defconfig
         grep -q '^CONFIG_PACKAGE_luci-app-store=y' .config
 
