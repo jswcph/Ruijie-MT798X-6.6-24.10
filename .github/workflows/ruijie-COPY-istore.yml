@@ -1,4 +1,4 @@
-name: Build Ruijie COPY
+name: Build Ruijie-istore
 on:
   workflow_dispatch:
   
