@@ -1,4 +1,4 @@
-name: Build Ruijieistore
+name: Build istore+pass+clash
 on:
   workflow_dispatch:
   
