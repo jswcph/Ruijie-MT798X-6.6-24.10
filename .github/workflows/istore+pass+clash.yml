@@ -1029,18 +1029,40 @@ jobs:
       run: |
         SHORT_HASH=$(git rev-parse --short HEAD)
         BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD | tr '/' '-')
-        echo "release_tag=R$(date +"%y.%-m.%-d.%H%M")-$SHORT_HASH-$BRANCH_NAME-max" >> $GITHUB_OUTPUT
-        touch release.txt
-        {
-          echo "## Changes:"
-          echo ""
-          git log -1 --pretty=format:"- %s (%h) by %an"
-          echo ""
-          echo "### Diff:"
-          git diff --name-only HEAD^ HEAD | sed 's/^/- /'
-        } > release.txt
+        echo "release_tag=R$(date +"%y.%-m.%-d.%H%M")-$BRANCH_NAME-max" >> $GITHUB_OUTPUT
+
+        cat > release.txt << 'EOF'
+        ## 📦 适用于锐捷路由器的 Immortalwrt 固件
+
+        ### 支持机型
+        | 型号 |
+        | --- |
+        | X60-new |
+        | X60Pro |
+        | X30e |
+        | X30ePro |
+
+        ### 默认信息
+        | 项目 | 内容 |
+        | --- | --- |
+        | 管理地址 | 192.168.6.1 |
+        | 管理密码 | password |
+        | WiFi 2.4G 密码 | password |
+        | WiFi 5G 密码 | password |
+        | 默认频宽 | 160MHz |
+
+        ### 内置插件
+        | 插件 | 说明 |
+        | --- | --- |
+        | PassWall | Xray + Singbox 内核 |
+        | OpenClash | Mihomo 内核 |
+        | istore商店 | 拓展插件 |
+        | 默认主题 | Argon-比卡丘 | 
+
+        EOF
 
         echo "status=success" >> $GITHUB_OUTPUT
+
 
     - name: Upload Release
       uses: softprops/action-gh-release@master
