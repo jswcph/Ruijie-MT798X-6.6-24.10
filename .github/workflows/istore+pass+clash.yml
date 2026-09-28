@@ -1,4 +1,4 @@
-name: Build istore+pass+clash
+name: Build TikTok-Wrt
 on:
   workflow_dispatch:
   
@@ -759,26 +759,7 @@ jobs:
 
         print("OK: 修改核验通过")
         PY
-    - name: Install Mihomo Meta Core
-      id: install-mihomo-core
-      run: |
-        set -euo pipefail
-        CORE_DIR="${GITHUB_WORKSPACE}/files/etc/openclash/core"
-        mkdir -p "$CORE_DIR"
-        API_URL="https://api.github.com/repos/MetaCubeX/mihomo/releases/latest"
-        ASSET_URL=$(curl -fsSL "$API_URL" | python3 -c 'import json,sys; d=json.load(sys.stdin); assets=d.get("assets", []); a=next((x for x in assets if x["name"].startswith("mihomo-linux-arm64-") and x["name"].endswith(".gz")), None); print(a["browser_download_url"] if a else "")')
-        if [ -z "$ASSET_URL" ]; then
-          echo "ERROR: latest Mihomo linux-arm64 .gz asset not found"
-          exit 1
-        fi
-        echo "Downloading: $ASSET_URL"
-        curl -fL --retry 3 --retry-delay 2 "$ASSET_URL" -o "$RUNNER_TEMP/mihomo.gz"
-        gzip -t "$RUNNER_TEMP/mihomo.gz"
-        gzip -dc "$RUNNER_TEMP/mihomo.gz" > "$CORE_DIR/clash_meta"
-        test -s "$CORE_DIR/clash_meta"
-        chmod 0755 "$CORE_DIR/clash_meta"
-        file "$CORE_DIR/clash_meta" || true
-        ls -lh "$CORE_DIR/clash_meta"
+
 
     - name: Download Package
       id: download-package
@@ -926,26 +907,6 @@ jobs:
         make defconfig
         grep -q '^CONFIG_PACKAGE_luci-app-store=y' .config
 
-    - name: Install Mihomo Meta Core
-      id: install-mihomo-core
-      run: |
-        set -euo pipefail
-        CORE_DIR="${GITHUB_WORKSPACE}/files/etc/openclash/core"
-        mkdir -p "$CORE_DIR"
-        API_URL="https://api.github.com/repos/MetaCubeX/mihomo/releases/latest"
-        ASSET_URL=$(curl -fsSL "$API_URL" | python3 -c 'import json,sys; d=json.load(sys.stdin); assets=d.get("assets", []); a=next((x for x in assets if x["name"].startswith("mihomo-linux-arm64-") and x["name"].endswith(".gz")), None); print(a["browser_download_url"] if a else "")')
-        if [ -z "$ASSET_URL" ]; then
-          echo "ERROR: latest Mihomo linux-arm64 .gz asset not found"
-          exit 1
-        fi
-        echo "Downloading: $ASSET_URL"
-        curl -fL --retry 3 --retry-delay 2 "$ASSET_URL" -o "$RUNNER_TEMP/mihomo.gz"
-        gzip -t "$RUNNER_TEMP/mihomo.gz"
-        gzip -dc "$RUNNER_TEMP/mihomo.gz" > "$CORE_DIR/clash_meta"
-        test -s "$CORE_DIR/clash_meta"
-        chmod 0755 "$CORE_DIR/clash_meta"
-        file "$CORE_DIR/clash_meta" || true
-        ls -lh "$CORE_DIR/clash_meta"
 
     - name: Download Package
       id: download-package
@@ -1037,10 +998,10 @@ jobs:
         ### 支持机型
         | 型号 |
         | --- |
-        | X60-new |
-        | X60Pro |
-        | X30e |
-        | X30ePro |
+        | 锐捷X60-new |
+        | 锐捷X60Pro |
+        | 磊科N60Pro |
+        | 红米Ax6000 |
 
         ### 默认信息
         | 项目 | 内容 |
@@ -1055,7 +1016,6 @@ jobs:
         | 插件 | 说明 |
         | --- | --- |
         | PassWall | Xray + Singbox 内核 |
-        | OpenClash | Mihomo 内核 |
         | istore商店 | 拓展插件 |
         | 默认主题 | Argon-比卡丘 | 
 
