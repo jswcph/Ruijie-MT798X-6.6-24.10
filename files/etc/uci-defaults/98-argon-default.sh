@@ -8,7 +8,7 @@ if [ ! -f /etc/config/argon ]; then
     uci add argon global
 fi
 
-uci set argon.@global[0].primary='#4682B4'
+uci set argon.@global[0].primary='#3460BA'
 uci set argon.@global[0].dark_primary='#4A6B5D'
 uci set argon.@global[0].mode='light'
 uci set argon.@global[0].transparency='0.3'
