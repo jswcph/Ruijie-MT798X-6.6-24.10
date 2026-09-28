@@ -1,47 +1,112 @@
 #!/bin/sh
-# 首次开机自动执行一次：写入主机名/LAN地址/WiFi名称/默认密码/主题/语言
+# 首次开机自动执行一次：写入主机名/LAN地址/WiFi/多接口/Passwall访问控制/默认密码/语言
 # 主机名
-uci set system.@system[0].hostname='OpenWrt'
-# 缩小系统日志内存缓冲区（默认64，纯路由+科学上网场景32~48够用，省内存）
+uci set system.@system[0].hostname='TikTok-Wrt'
 uci set system.@system[0].log_size='32'
-# LAN 地址
+# 主 LAN 地址
 uci set network.lan.ipaddr='192.168.6.1'
 
-# WiFi SSID + 密码（按接口是否存在自动匹配，避免单频设备报错）
-if [ -n "$(uci -q get wireless.@wifi-iface[0])" ]; then
-    uci set wireless.@wifi-iface[0].ssid='OpenWrt_2.4G'
-    uci set wireless.@wifi-iface[0].encryption='psk2'
-    uci set wireless.@wifi-iface[0].key='password'
-fi
-if [ -n "$(uci -q get wireless.@wifi-iface[1])" ]; then
-    uci set wireless.@wifi-iface[1].ssid='OpenWrt_5G'
-    uci set wireless.@wifi-iface[1].encryption='psk2'
-    uci set wireless.@wifi-iface[1].key='password'
-fi
-
-# 5G 频段默认开启 160MHz 带宽
-# 优先按 band=5g 判断具体是哪个 wifi-device，避免设备顺序不固定导致设错频段
+########## WiFi ##########
+# 按 band 找到 2.4G / 5G 的 wifi-device（不依赖设备顺序）
+DEV_2G=""
+DEV_5G=""
 for dev in $(uci -q show wireless | grep '=wifi-device' | cut -d. -f2 | cut -d= -f1); do
     band="$(uci -q get wireless.${dev}.band)"
-    if [ "$band" = "5g" ]; then
-        cur_htmode="$(uci -q get wireless.${dev}.htmode)"
-        case "$cur_htmode" in
-            HE*)  uci set wireless.${dev}.htmode='HE160' ;;
-            EHT*) uci set wireless.${dev}.htmode='EHT160' ;;
-            *)    uci set wireless.${dev}.htmode='VHT160' ;;
-        esac
+    [ "$band" = "2g" ] && [ -z "$DEV_2G" ] && DEV_2G="$dev"
+    [ "$band" = "5g" ] && [ -z "$DEV_5G" ] && DEV_5G="$dev"
+done
+
+# 5G 频段默认开启 160MHz 带宽
+if [ -n "$DEV_5G" ]; then
+    cur_htmode="$(uci -q get wireless.${DEV_5G}.htmode)"
+    case "$cur_htmode" in
+        HE*)  uci set wireless.${DEV_5G}.htmode='HE160' ;;
+        EHT*) uci set wireless.${DEV_5G}.htmode='EHT160' ;;
+        *)    uci set wireless.${DEV_5G}.htmode='VHT160' ;;
+    esac
+fi
+
+# 默认 2.4G wifi 只改名称，其余不动；默认 5G wifi 删除
+FIRST_2G_DONE=0
+for sec in $(uci -q show wireless | grep '=wifi-iface' | cut -d. -f2 | cut -d= -f1); do
+    d="$(uci -q get wireless.${sec}.device)"
+    if [ -n "$DEV_2G" ] && [ "$d" = "$DEV_2G" ] && [ "$FIRST_2G_DONE" = "0" ]; then
+        uci set wireless.${sec}.ssid='OpenWrt'
+        FIRST_2G_DONE=1
+    elif [ -n "$DEV_5G" ] && [ "$d" = "$DEV_5G" ]; then
+        uci delete wireless.${sec}
     fi
 done
 
-# 默认密码：password（登录/SSH）
+# 新增 wifi：名称 所在射频 绑定接口
+add_wifi() {
+    uci set wireless.$1=wifi-iface
+    uci set wireless.$1.device="$2"
+    uci set wireless.$1.mode='ap'
+    uci set wireless.$1.network="$3"
+    uci set wireless.$1.ssid="$1"
+    uci set wireless.$1.encryption='psk2'
+    uci set wireless.$1.key='password'
+}
+
+# 5G：wifi1 wifi2 wifi3（单频设备没有对应射频则跳过）
+if [ -n "$DEV_5G" ]; then
+    add_wifi wifi1 "$DEV_5G" lan1
+    add_wifi wifi2 "$DEV_5G" lan2
+    add_wifi wifi3 "$DEV_5G" lan3
+fi
+# 2.4G：wifi4 wifi5
+if [ -n "$DEV_2G" ]; then
+    add_wifi wifi4 "$DEV_2G" lan4
+    add_wifi wifi5 "$DEV_2G" lan5
+fi
+
+########## 接口 / DHCP / 防火墙 ##########
+# 找到名为 lan 的防火墙区域
+LAN_ZONE=""
+for z in $(uci -q show firewall | grep "\.name='lan'" | cut -d. -f2 | cut -d= -f1); do
+    [ "$(uci -q get firewall.${z})" = "zone" ] && LAN_ZONE="$z" && break
+done
+
+for i in 1 2 3 4 5; do
+    # 静态地址接口 lanN
+    uci set network.lan$i=interface
+    uci set network.lan$i.proto='static'
+    uci set network.lan$i.ipaddr="192.168.1$i.1"
+    uci set network.lan$i.netmask='255.255.255.0'
+
+    # 开启 DHCP
+    uci set dhcp.lan$i=dhcp
+    uci set dhcp.lan$i.interface="lan$i"
+    uci set dhcp.lan$i.start='100'
+    uci set dhcp.lan$i.limit='150'
+    uci set dhcp.lan$i.leasetime='12h'
+
+    # 防火墙区域 lan
+    [ -n "$LAN_ZONE" ] && uci add_list firewall.${LAN_ZONE}.network="lan$i"
+done
+
+########## Passwall 访问控制 ##########
+# 若用的是 passwall2，把下面 PW 改为 passwall2
+PW='passwall'
+if [ -f /etc/config/$PW ]; then
+    for i in 1 2 3 4 5; do
+        uci set $PW.acl_wifi$i=acl_rule
+        uci set $PW.acl_wifi$i.remarks="wifi$i"
+        uci set $PW.acl_wifi$i.sources="192.168.1$i.0/24"
+        uci set $PW.acl_wifi$i.use_global_config='1'   # 全局模式：跟随全局配置
+    done
+    uci commit $PW
+fi
+
+########## 密码 / 语言 ##########
 (echo 'password'; sleep 1; echo 'password') | passwd root >/dev/null 2>&1
-
-
-# 默认语言：简体中文
 uci set luci.main.lang='zh_cn'
 
 uci commit system
 uci commit network
 uci commit wireless
+uci commit dhcp
+uci commit firewall
 uci commit luci
 exit 0
