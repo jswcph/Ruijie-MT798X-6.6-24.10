@@ -1,4 +1,4 @@
-name: Build TikTok-Wrt
+name: TikTok-Wrt
 on:
   workflow_dispatch:
   
