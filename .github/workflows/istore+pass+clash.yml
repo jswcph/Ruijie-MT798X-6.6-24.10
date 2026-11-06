@@ -1034,13 +1034,7 @@ jobs:
         cat > release.txt << 'EOF'
         ## 📦 适用于锐捷路由器的 Immortalwrt 固件
 
-        ### 支持机型
-        | 型号 |
-        | --- |
-        | X60-new |
-        | X60Pro |
-        | X30e |
-        | X30ePro |
+
 
         ### 默认信息
         | 项目 | 内容 |
